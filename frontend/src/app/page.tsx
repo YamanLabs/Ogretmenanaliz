@@ -12,12 +12,14 @@ import {
   RefreshCw,
   HelpCircle,
   Trash2,
-  Printer
+  Printer,
+  Key
 } from "lucide-react";
 import { ExtractedStudent } from "../components/types";
 import { AcademicTable } from "../components/AcademicTable";
 import { GrowthTable } from "../components/GrowthTable";
 import { AnalyticsChart } from "../components/AnalyticsChart";
+import { ApiKeyModal } from "../components/ApiKeyModal";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -34,6 +36,15 @@ export default function DashboardPage() {
   // Status states
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
+
+  // Check Gemini API Key on initial mount
+  useEffect(() => {
+    const savedKey = localStorage.getItem("gemini_api_key");
+    if (!savedKey) {
+      setIsApiKeyModalOpen(true);
+    }
+  }, []);
 
   // Load from LocalStorage on mount/class change
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -151,10 +162,40 @@ export default function DashboardPage() {
     }
   };
 
+  const handleSelectGemini = () => {
+    const savedKey = localStorage.getItem("gemini_api_key");
+    if (!savedKey) {
+      showToast("info", "Gemini'yi kullanabilmek için lütfen önce API anahtarınızı girin.");
+      setIsApiKeyModalOpen(true);
+    } else {
+      setProcessor("gemini");
+    }
+  };
+
+  const handleSaveApiKey = (key: string) => {
+    if (key) {
+      setProcessor("gemini");
+      showToast("success", "Gemini API anahtarı kaydedildi. Gemini tarama yöntemi etkinleştirildi.");
+    } else {
+      setProcessor("local");
+      showToast("info", "Gemini API anahtarı temizlendi. Yerel OCR yöntemine geçildi.");
+    }
+  };
+
   // Upload Screenshot (OCR)
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (processor === "gemini") {
+      const savedKey = localStorage.getItem("gemini_api_key") || "";
+      if (!savedKey) {
+        showToast("error", "Gemini ile analiz yapmak için geçerli bir API anahtarı girmelisiniz.");
+        setIsApiKeyModalOpen(true);
+        event.target.value = "";
+        return;
+      }
+    }
 
     setIsLoading(true);
     showToast(
@@ -166,6 +207,11 @@ export default function DashboardPage() {
     formData.append("file", file);
     formData.append("class_name", className);
     formData.append("processor", processor);
+
+    if (processor === "gemini") {
+      const savedKey = localStorage.getItem("gemini_api_key") || "";
+      formData.append("gemini_api_key", savedKey);
+    }
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/upload`, {
@@ -615,32 +661,42 @@ export default function DashboardPage() {
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Tarama yöntemi
               </span>
-              <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+              <div className="flex items-center gap-1.5">
+                <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                  <button
+                    type="button"
+                    aria-pressed={processor === "local"}
+                    disabled={isLoading}
+                    onClick={() => setProcessor("local")}
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 ${
+                      processor === "local"
+                        ? "bg-white text-[#1976d2] shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    Yerel OCR
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={processor === "gemini"}
+                    disabled={isLoading}
+                    onClick={handleSelectGemini}
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 ${
+                      processor === "gemini"
+                        ? "bg-white text-violet-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    Gemini 3.1 Flash-Lite
+                  </button>
+                </div>
                 <button
                   type="button"
-                  aria-pressed={processor === "local"}
-                  disabled={isLoading}
-                  onClick={() => setProcessor("local")}
-                  className={`rounded-md px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 ${
-                    processor === "local"
-                      ? "bg-white text-[#1976d2] shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
+                  onClick={() => setIsApiKeyModalOpen(true)}
+                  className="p-1.5 text-slate-400 hover:text-violet-700 hover:bg-violet-50 transition border border-slate-200 rounded-lg bg-white shadow-xs"
+                  title="Gemini API Anahtarını Ayarla"
                 >
-                  Yerel OCR
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={processor === "gemini"}
-                  disabled={isLoading}
-                  onClick={() => setProcessor("gemini")}
-                  className={`rounded-md px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 ${
-                    processor === "gemini"
-                      ? "bg-white text-violet-700 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  Gemini 3.1 Flash-Lite
+                  <Key className="w-4 h-4" />
                 </button>
               </div>
               <span className="max-w-52 text-[10px] leading-tight text-slate-500">
@@ -802,6 +858,12 @@ export default function DashboardPage() {
           Fizik Dersi Akademik ve Gelişim Değerlendirme Sistemi © 2026. Tamamen Yerel ve Güvenli Veri Saklama.
         </div>
       </footer>
+
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onSave={handleSaveApiKey}
+      />
     </div>
   );
 }

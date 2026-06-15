@@ -185,12 +185,17 @@ def _parse_response_text(response_text: str) -> list[GeminiStudent]:
 def extract_students_with_gemini(
     image_bytes: bytes,
     mime_type: str,
+    api_key: Optional[str] = None,
 ) -> list[GeminiStudent]:
     """Goruntuyu Gemini'ye gonder ve dogrulanmis ogrenci satirlarini dondur."""
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if api_key:
+        api_key = api_key.strip()
+    if not api_key:
+        api_key = os.getenv("GEMINI_API_KEY", "").strip()
+
     if not api_key:
         raise GeminiExtractionError(
-            "Gemini kullanmak icin backend .env dosyasinda GEMINI_API_KEY tanimlanmali.",
+            "Gemini kullanmak icin geçerli bir Gemini API anahtari (GEMINI_API_KEY) girilmelidir.",
             status_code=503,
         )
 

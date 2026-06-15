@@ -75,7 +75,7 @@ class TestGeminiUpload(unittest.TestCase):
         self.assertIsNone(data["students"][1]["calculated_average"])
         self.assertEqual(data["students"][1]["status"], "Belirsiz")
         self.assertIsNone(data["students"][0]["bbox_school_no"])
-        gemini_mock.assert_called_once_with(png_bytes, "image/png")
+        gemini_mock.assert_called_once_with(png_bytes, "image/png", api_key=None)
         extract_cells_mock.assert_not_called()
         read_text_mock.assert_not_called()
         read_name_mock.assert_not_called()

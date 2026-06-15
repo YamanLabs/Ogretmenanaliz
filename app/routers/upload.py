@@ -332,6 +332,7 @@ async def upload_image(
     file: Annotated[Optional[UploadFile], File()] = None,
     image_base64: Annotated[Optional[str], Form()] = None,
     processor: Annotated[str, Form()] = "local",
+    gemini_api_key: Annotated[Optional[str], Form()] = None,
     db: Session = Depends(get_db),
 ):
     """
@@ -371,7 +372,7 @@ async def upload_image(
     if processor == "gemini":
         mime_type = _detect_mime_type(raw_bytes, declared_mime_type)
         try:
-            rows = gemini_extractor.extract_students_with_gemini(raw_bytes, mime_type)
+            rows = gemini_extractor.extract_students_with_gemini(raw_bytes, mime_type, api_key=gemini_api_key)
         except gemini_extractor.GeminiExtractionError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
         return _build_gemini_response(rows, class_name, db)
