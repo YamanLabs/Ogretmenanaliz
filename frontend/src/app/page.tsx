@@ -33,15 +33,16 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"academic" | "growth">("academic");
   const [processor, setProcessor] = useState<"local" | "gemini">("local");
   
-  // Status states
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
-  // Check Gemini API Key on initial mount
+  // Check Gemini API Key on initial client-side mount
   useEffect(() => {
+    setIsMounted(true);
     const savedKey = localStorage.getItem("gemini_api_key");
-    if (!savedKey) {
+    if (!savedKey || savedKey.trim() === "" || savedKey === "null" || savedKey === "undefined") {
       setIsApiKeyModalOpen(true);
     }
   }, []);
@@ -859,11 +860,13 @@ export default function DashboardPage() {
         </div>
       </footer>
 
-      <ApiKeyModal
-        isOpen={isApiKeyModalOpen}
-        onClose={() => setIsApiKeyModalOpen(false)}
-        onSave={handleSaveApiKey}
-      />
+      {isMounted && (
+        <ApiKeyModal
+          isOpen={isApiKeyModalOpen}
+          onClose={() => setIsApiKeyModalOpen(false)}
+          onSave={handleSaveApiKey}
+        />
+      )}
     </div>
   );
 }
