@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const [classId, setClassId] = useState<number | null>(null);
   const [students, setStudents] = useState<ExtractedStudent[]>([]);
   const [activeTab, setActiveTab] = useState<"academic" | "growth">("academic");
-  const [processor, setProcessor] = useState<"local" | "gemini">("local");
+  const [processor, setProcessor] = useState<"local" | "gemini">("gemini");
   
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
@@ -41,7 +41,12 @@ export default function DashboardPage() {
   // Check Gemini API Key on initial client-side mount
   useEffect(() => {
     setIsMounted(true);
-    const savedKey = localStorage.getItem("gemini_api_key");
+    let savedKey = "";
+    try {
+      savedKey = localStorage.getItem("gemini_api_key") || "";
+    } catch (e) {
+      console.error("Failed to read from localStorage:", e);
+    }
     if (!savedKey || savedKey.trim() === "" || savedKey === "null" || savedKey === "undefined") {
       setIsApiKeyModalOpen(true);
     }
@@ -658,52 +663,25 @@ export default function DashboardPage() {
 
           {/* Action buttons (Screenshot OCR and Save) */}
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Tarama yöntemi
               </span>
-              <div className="flex items-center gap-1.5">
-                <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-                  <button
-                    type="button"
-                    aria-pressed={processor === "local"}
-                    disabled={isLoading}
-                    onClick={() => setProcessor("local")}
-                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 ${
-                      processor === "local"
-                        ? "bg-white text-[#1976d2] shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Yerel OCR
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={processor === "gemini"}
-                    disabled={isLoading}
-                    onClick={handleSelectGemini}
-                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 ${
-                      processor === "gemini"
-                        ? "bg-white text-violet-700 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Gemini 3.1 Flash-Lite
-                  </button>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-3 py-1.5 bg-violet-50 text-violet-700 rounded-lg border border-violet-200 text-xs font-bold shadow-xs">
+                  Gemini 3.1 Flash-Lite
+                </span>
                 <button
                   type="button"
                   onClick={() => setIsApiKeyModalOpen(true)}
-                  className="p-1.5 text-slate-400 hover:text-violet-700 hover:bg-violet-50 transition border border-slate-200 rounded-lg bg-white shadow-xs"
+                  className="p-2 text-slate-500 hover:text-violet-700 hover:bg-violet-50 transition border border-slate-200 rounded-lg bg-white shadow-xs"
                   title="Gemini API Anahtarını Ayarla"
                 >
                   <Key className="w-4 h-4" />
                 </button>
               </div>
               <span className="max-w-52 text-[10px] leading-tight text-slate-500">
-                {processor === "gemini"
-                  ? "Görsel Google Gemini API'ye gönderilir."
-                  : "Görsel yalnızca bu bilgisayarda işlenir."}
+                Görsel Google Gemini API'ye gönderilir.
               </span>
             </div>
             

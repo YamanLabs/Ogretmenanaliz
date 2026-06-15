@@ -17,7 +17,12 @@ export function ApiKeyModal({ isOpen, onClose, onSave }: ApiKeyModalProps) {
   // Load key from localStorage when modal opens
   useEffect(() => {
     if (isOpen) {
-      const savedKey = localStorage.getItem("gemini_api_key") || "";
+      let savedKey = "";
+      try {
+        savedKey = localStorage.getItem("gemini_api_key") || "";
+      } catch (e) {
+        console.error("Failed to read from localStorage:", e);
+      }
       setApiKey(savedKey);
       setErrorMsg(null);
       setShowKey(false);
@@ -40,14 +45,22 @@ export function ApiKeyModal({ isOpen, onClose, onSave }: ApiKeyModalProps) {
       }
     }
 
-    localStorage.setItem("gemini_api_key", trimmedKey);
+    try {
+      localStorage.setItem("gemini_api_key", trimmedKey);
+    } catch (e) {
+      console.error("Failed to save to localStorage:", e);
+    }
     onSave(trimmedKey);
     onClose();
   };
 
   const handleClear = () => {
     if (window.confirm("Kayıtlı Gemini API anahtarını silmek istediğinizden emin misiniz?")) {
-      localStorage.removeItem("gemini_api_key");
+      try {
+        localStorage.removeItem("gemini_api_key");
+      } catch (e) {
+        console.error("Failed to remove from localStorage:", e);
+      }
       setApiKey("");
       onSave("");
       setErrorMsg(null);
@@ -108,7 +121,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave }: ApiKeyModalProps) {
                 >
                   {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-                {localStorage.getItem("gemini_api_key") && (
+                {apiKey && (
                   <button
                     type="button"
                     onClick={handleClear}
