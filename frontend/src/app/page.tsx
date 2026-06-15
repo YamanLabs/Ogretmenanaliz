@@ -21,7 +21,7 @@ import { GrowthTable } from "../components/GrowthTable";
 import { AnalyticsChart } from "../components/AnalyticsChart";
 import { ApiKeyModal } from "../components/ApiKeyModal";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+// Backend URL state is used instead of static constant
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
@@ -37,15 +37,24 @@ export default function DashboardPage() {
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [backendUrl, setBackendUrl] = useState<string>("http://127.0.0.1:8000");
 
-  // Check Gemini API Key on initial client-side mount
+  // Check Gemini API Key and Backend URL on initial client-side mount
   useEffect(() => {
     setIsMounted(true);
     let savedKey = "";
+    let savedUrl = "";
     try {
       savedKey = localStorage.getItem("gemini_api_key") || "";
+      savedUrl = localStorage.getItem("backend_api_url") || "";
     } catch (e) {
       console.error("Failed to read from localStorage:", e);
+    }
+    if (savedUrl) {
+      setBackendUrl(savedUrl);
+    } else {
+      const defaultUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      setBackendUrl(defaultUrl);
     }
     if (!savedKey || savedKey.trim() === "" || savedKey === "null" || savedKey === "undefined") {
       setIsApiKeyModalOpen(true);
@@ -105,7 +114,7 @@ export default function DashboardPage() {
         cid = 1; 
       }
 
-      const res = await fetch(`${BACKEND_URL}/api/grades/${cid}?term=2024-2025-1`);
+      const res = await fetch(`${backendUrl}/api/grades/${cid}?term=2024-2025-1`);
       if (!res.ok) {
         throw new Error("Sınıf veritabanında bulunamadı veya henüz kaydedilmemiş.");
       }
@@ -140,7 +149,7 @@ export default function DashboardPage() {
     showToast("info", `'${className}' sınıfı verileri temizleniyor...`);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/grades/class/${className}`, {
+      const res = await fetch(`${backendUrl}/api/grades/class/${className}`, {
         method: "DELETE",
       });
 
@@ -178,13 +187,12 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSaveApiKey = (key: string) => {
+  const handleSaveApiKey = (key: string, url: string) => {
     if (key) {
-      setProcessor("gemini");
-      showToast("success", "Gemini API anahtarı kaydedildi. Gemini tarama yöntemi etkinleştirildi.");
-    } else {
-      setProcessor("local");
-      showToast("info", "Gemini API anahtarı temizlendi. Yerel OCR yöntemine geçildi.");
+      showToast("success", "Ağ ve Gemini API ayarları kaydedildi.");
+    }
+    if (url) {
+      setBackendUrl(url);
     }
   };
 
@@ -220,7 +228,7 @@ export default function DashboardPage() {
     }
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+      const res = await fetch(`${backendUrl}/api/upload`, {
         method: "POST",
         body: formData,
       });
@@ -312,7 +320,7 @@ export default function DashboardPage() {
     }));
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/save-grades`, {
+      const res = await fetch(`${backendUrl}/api/save-grades`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ grades: gradesPayload }),
@@ -347,7 +355,7 @@ export default function DashboardPage() {
     }
     
     showToast("info", "Akademik not tablosu indiriliyor...");
-    window.open(`${BACKEND_URL}/api/export-excel/${classId}`, "_blank");
+    window.open(`${backendUrl}/api/export-excel/${classId}`, "_blank");
   };
 
   // Export Growth Excel
@@ -358,7 +366,7 @@ export default function DashboardPage() {
     }
 
     showToast("info", "Gelişim raporu Excel tablosu indiriliyor...");
-    window.open(`${BACKEND_URL}/api/export-growth-excel/${classId}`, "_blank");
+    window.open(`${backendUrl}/api/export-growth-excel/${classId}`, "_blank");
   };
 
   // Export PDF / Print layout
